@@ -13,11 +13,13 @@ import com.crmapi.sistemacrm.repository.UsuarioRepository;
 import com.crmapi.sistemacrm.repository.specification.UsuarioSpecification;
 import com.crmapi.sistemacrm.service.UsuarioService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -29,11 +31,18 @@ public class UsuarioServiceImpl implements UsuarioService {
     @Override
     public UsuarioResponseDTO criar(UsuarioCreateDTO dto) {
         if (usuarioRepository.existsByEmail(dto.email())) {
+            log.warn("Tentativa de criar usuario com email ja cadastrado: {}", dto.email());
             throw new BusinessException("Ja existe um usuario cadastrado com o email informado");
         }
-        Usuario usuario = usuarioMapper.paraEntidade(dto);
-        Usuario salvo = usuarioRepository.save(usuario);
-        return usuarioMapper.paraResponseDTO(salvo);
+        try {
+            Usuario usuario = usuarioMapper.paraEntidade(dto);
+            Usuario salvo = usuarioRepository.save(usuario);
+            log.info("Usuario criado: id={}, email={}, role={}", salvo.getId(), salvo.getEmail(), salvo.getRole());
+            return usuarioMapper.paraResponseDTO(salvo);
+        } catch (Exception e) {
+            log.error("Erro ao criar usuario com email {}: {}", dto.email(), e.getMessage());
+            throw new BusinessException("Nao foi possivel criar o usuario");
+        }
     }
 
     @Override
@@ -60,26 +69,44 @@ public class UsuarioServiceImpl implements UsuarioService {
             }
         });
 
-        usuario.setNome(dto.nome());
-        usuario.setEmail(dto.email());
-        usuario.setRole(dto.role());
+        try {
+            usuario.setNome(dto.nome());
+            usuario.setEmail(dto.email());
+            usuario.setRole(dto.role());
 
-        Usuario atualizado = usuarioRepository.save(usuario);
-        return usuarioMapper.paraResponseDTO(atualizado);
+            Usuario atualizado = usuarioRepository.save(usuario);
+            log.info("Usuario atualizado: id={}, email={}", id, dto.email());
+            return usuarioMapper.paraResponseDTO(atualizado);
+        } catch (Exception e) {
+            log.error("Erro ao atualizar usuario id={}: {}", id, e.getMessage());
+            throw new BusinessException("Nao foi possivel atualizar o usuario");
+        }
     }
 
     @Override
     public UsuarioResponseDTO atualizarStatus(Long id, UsuarioStatusDTO dto) {
         Usuario usuario = buscarEntidadePorId(id);
-        usuario.setAtivo(dto.ativo());
-        Usuario atualizado = usuarioRepository.save(usuario);
-        return usuarioMapper.paraResponseDTO(atualizado);
+        try {
+            usuario.setAtivo(dto.ativo());
+            Usuario atualizado = usuarioRepository.save(usuario);
+            log.info("Status do usuario atualizado: id={}, ativo={}", id, dto.ativo());
+            return usuarioMapper.paraResponseDTO(atualizado);
+        } catch (Exception e) {
+            log.error("Erro ao atualizar status do usuario id={}: {}", id, e.getMessage());
+            throw new BusinessException("Nao foi possivel atualizar o status do usuario");
+        }
     }
 
     @Override
     public void deletar(Long id) {
         Usuario usuario = buscarEntidadePorId(id);
-        usuarioRepository.delete(usuario);
+        try {
+            usuarioRepository.delete(usuario);
+            log.info("Usuario deletado: id={}", id);
+        } catch (Exception e) {
+            log.error("Erro ao deletar usuario id={}: {}", id, e.getMessage());
+            throw new BusinessException("Nao foi possivel deletar o usuario");
+        }
     }
 
     private Usuario buscarEntidadePorId(Long id) {

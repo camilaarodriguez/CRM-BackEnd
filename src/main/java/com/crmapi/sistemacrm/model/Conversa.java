@@ -1,6 +1,6 @@
 package com.crmapi.sistemacrm.model;
 
-import com.crmapi.sistemacrm.model.enums.StatusFunil;
+import com.crmapi.sistemacrm.model.enums.StatusConversa;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,46 +14,38 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "clientes")
+@Table(name = "conversas")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Cliente {
+public class Conversa {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 150)
-    private String nome;
-
-    @Column(nullable = false, length = 150)
-    private String email;
-
-    @Column(nullable = false, unique = true, length = 20)
-    private String telefone;
-
-    @Column(unique = true, length = 18)
-    private String documento;
-
-    @Column(length = 150)
-    private String empresa;
-
-    @Column(columnDefinition = "TEXT")
-    private String observacoes;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cliente_id", nullable = false)
+    private Cliente cliente;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vendedor_id")
     private Usuario vendedor;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status_funil", nullable = false, length = 20)
-    private StatusFunil statusFunil;
+    @Column(nullable = false, length = 20)
+    private StatusConversa status;
 
-    @Column(nullable = false)
+    @Column(name = "nao_lidas", nullable = false)
     @Builder.Default
-    private Boolean ativo = true;
+    private Integer naoLidas = 0;
+
+    @Column(name = "ultima_mensagem_em")
+    private LocalDateTime ultimaMensagemEm;
+
+    @Column(name = "janela_expira_em")
+    private LocalDateTime janelaExpiraEm;
 
     @Column(name = "criado_em", nullable = false, updatable = false)
     private LocalDateTime criadoEm;
@@ -63,19 +55,25 @@ public class Cliente {
 
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
-    @OneToMany(mappedBy = "cliente", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "conversa", fetch = FetchType.LAZY)
     @Builder.Default
-    private List<Conversa> conversas = new ArrayList<>();
+    private List<Mensagem> mensagens = new ArrayList<>();
+
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @OneToMany(mappedBy = "conversa", fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<AtribuicaoLog> atribuicoesLog = new ArrayList<>();
 
     @PrePersist
     protected void aoPersistir() {
         this.criadoEm = LocalDateTime.now();
         this.atualizadoEm = LocalDateTime.now();
-        if (this.ativo == null) {
-            this.ativo = true;
+        if (this.status == null) {
+            this.status = StatusConversa.ABERTA;
         }
-        if (this.statusFunil == null) {
-            this.statusFunil = StatusFunil.NOVO;
+        if (this.naoLidas == null) {
+            this.naoLidas = 0;
         }
     }
 
