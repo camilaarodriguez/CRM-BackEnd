@@ -5,9 +5,13 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "usuarios")
@@ -27,7 +31,7 @@ public class Usuario {
     @Column(nullable = false, unique = true, length = 150)
     private String email;
 
-    @Column(nullable = false)
+    @Column(name = "senha_hash", nullable = false)
     private String senha;
 
     @Enumerated(EnumType.STRING)
@@ -43,6 +47,18 @@ public class Usuario {
 
     @Column(name = "atualizado_em")
     private LocalDateTime atualizadoEm;
+
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @OneToMany(mappedBy = "vendedor", fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<Cliente> clientesAtribuidos = new ArrayList<>();
+
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @OneToMany(mappedBy = "vendedor", fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<Conversa> conversas = new ArrayList<>();
 
     @PrePersist
     protected void aoPersistir() {
