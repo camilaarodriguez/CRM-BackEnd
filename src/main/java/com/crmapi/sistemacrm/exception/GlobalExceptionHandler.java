@@ -1,6 +1,7 @@
 package com.crmapi.sistemacrm.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -32,6 +33,22 @@ public class GlobalExceptionHandler {
                 HttpStatus.CONFLICT.value(),
                 "Violacao de regra de negocio",
                 ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(erro);
+    }
+
+    /**
+     * Rede de seguranca para violacoes de restricao do banco, como telefone ou
+     * documento duplicado, que antes chegavam ao cliente como erro interno.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponseDTO> tratarViolacaoDeIntegridade(DataIntegrityViolationException ex,
+                                                                        HttpServletRequest request) {
+        ErrorResponseDTO erro = new ErrorResponseDTO(
+                HttpStatus.CONFLICT.value(),
+                "Violacao de integridade",
+                "A operacao conflita com um registro existente ou com um vinculo obrigatorio",
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(erro);
