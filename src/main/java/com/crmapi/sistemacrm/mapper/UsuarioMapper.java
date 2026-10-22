@@ -8,11 +8,15 @@ import org.springframework.stereotype.Component;
 @Component
 public class UsuarioMapper {
 
-    public Usuario paraEntidade(UsuarioCreateDTO dto) {
+    /**
+     * A senha chega aqui ja codificada: o hash e responsabilidade da camada de
+     * servico, para que nenhum caminho de criacao grave texto puro por descuido.
+     */
+    public Usuario paraEntidade(UsuarioCreateDTO dto, String senhaCodificada) {
         return Usuario.builder()
                 .nome(dto.nome())
                 .email(dto.email())
-                .senha(dto.senha())
+                .senha(senhaCodificada)
                 .role(dto.role())
                 .ativo(true)
                 .build();

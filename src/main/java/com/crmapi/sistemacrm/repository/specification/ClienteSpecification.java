@@ -18,12 +18,7 @@ public class ClienteSpecification {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            if (busca != null && !busca.isBlank()) {
-                String termo = "%" + busca.toLowerCase() + "%";
-                Predicate porNome = cb.like(cb.lower(root.get("nome")), termo);
-                Predicate porEmail = cb.like(cb.lower(root.get("email")), termo);
-                predicates.add(cb.or(porNome, porEmail));
-            }
+            BuscaTextual.porNomeOuEmail(root, cb, busca).ifPresent(predicates::add);
 
             if (status != null) {
                 predicates.add(cb.equal(root.get("statusFunil"), status));

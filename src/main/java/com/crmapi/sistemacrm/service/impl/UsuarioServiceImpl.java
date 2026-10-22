@@ -2,6 +2,7 @@ package com.crmapi.sistemacrm.service.impl;
 
 import com.crmapi.sistemacrm.dto.usuario.UsuarioCreateDTO;
 import com.crmapi.sistemacrm.dto.usuario.UsuarioResponseDTO;
+import com.crmapi.sistemacrm.dto.usuario.UsuarioSenhaDTO;
 import com.crmapi.sistemacrm.dto.usuario.UsuarioStatusDTO;
 import com.crmapi.sistemacrm.dto.usuario.UsuarioUpdateDTO;
 import com.crmapi.sistemacrm.exception.BusinessException;
@@ -16,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +29,7 @@ public class UsuarioServiceImpl implements UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
     private final UsuarioMapper usuarioMapper;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public UsuarioResponseDTO criar(UsuarioCreateDTO dto) {
@@ -35,7 +38,7 @@ public class UsuarioServiceImpl implements UsuarioService {
             throw new BusinessException("Ja existe um usuario cadastrado com o email informado");
         }
         try {
-            Usuario usuario = usuarioMapper.paraEntidade(dto);
+            Usuario usuario = usuarioMapper.paraEntidade(dto, passwordEncoder.encode(dto.senha()));
             Usuario salvo = usuarioRepository.save(usuario);
             log.info("Usuario criado: id={}, email={}, role={}", salvo.getId(), salvo.getEmail(), salvo.getRole());
             return usuarioMapper.paraResponseDTO(salvo);
@@ -95,6 +98,22 @@ public class UsuarioServiceImpl implements UsuarioService {
             log.error("Erro ao atualizar status do usuario id={}: {}", id, e.getMessage());
             throw new BusinessException("Nao foi possivel atualizar o status do usuario");
         }
+    }
+
+    @Override
+    public void alterarSenha(Long id, UsuarioSenhaDTO dto) {
+        Usuario usuario = buscarEntidadePorId(id);
+
+        // A senha atual e conferida contra o hash: o valor em texto puro nunca
+        // existe no banco, entao a comparacao e feita pelo proprio encoder.
+        if (!passwordEncoder.matches(dto.senhaAtual(), usuario.getSenha())) {
+            log.warn("Tentativa de troca de senha com a senha atual incorreta: id={}", id);
+            throw new BusinessException("A senha atual nao confere");
+        }
+
+        usuario.setSenha(passwordEncoder.encode(dto.novaSenha()));
+        usuarioRepository.save(usuario);
+        log.info("Senha alterada: id={}", id);
     }
 
     @Override

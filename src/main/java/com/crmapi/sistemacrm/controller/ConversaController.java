@@ -8,7 +8,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
@@ -34,11 +33,9 @@ public class ConversaController {
             description = """
                     Retorna uma pagina de conversas. Sem o filtro de vendedor devolve a operacao inteira;
                     com o filtro, devolve apenas a fila daquele vendedor.""")
-    @ApiResponses({
-            @ApiResponse(responseCode = "400", description = "Parametro de filtro em formato invalido",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class)))
-    })
+    @ApiResponse(responseCode = "400", description = "Parametro de filtro em formato invalido",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponseDTO.class)))
     @GetMapping
     public ResponseEntity<Page<ConversaResponseDTO>> listar(
             @Parameter(description = "Identificador do vendedor responsavel pela conversa", example = "3")
@@ -48,14 +45,12 @@ public class ConversaController {
     }
 
     @Operation(summary = "Busca uma conversa pelo id")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Conversa encontrada",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ConversaResponseDTO.class))),
-            @ApiResponse(responseCode = "404", description = "Conversa nao encontrada",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class)))
-    })
+    @ApiResponse(responseCode = "200", description = "Conversa encontrada",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ConversaResponseDTO.class)))
+    @ApiResponse(responseCode = "404", description = "Conversa nao encontrada",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponseDTO.class)))
     @GetMapping("/{id}")
     public ResponseEntity<ConversaResponseDTO> buscarPorId(
             @Parameter(description = "Identificador da conversa", example = "1")

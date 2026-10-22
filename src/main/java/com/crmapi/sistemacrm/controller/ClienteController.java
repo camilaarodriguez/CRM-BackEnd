@@ -13,7 +13,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -39,17 +38,15 @@ public class ClienteController {
                     Cria o cliente e o vincula ao vendedor informado. Junto com o cadastro o sistema
                     abre automaticamente a conversa do cliente, registra a atribuicao inicial no
                     historico e dispara uma notificacao externa para a equipe.""")
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Cliente cadastrado",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ClienteResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Campos obrigatorios ausentes ou invalidos",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "404", description = "Vendedor informado nao existe",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class)))
-    })
+    @ApiResponse(responseCode = "201", description = "Cliente cadastrado",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ClienteResponseDTO.class)))
+    @ApiResponse(responseCode = "400", description = "Campos obrigatorios ausentes ou invalidos",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponseDTO.class)))
+    @ApiResponse(responseCode = "404", description = "Vendedor informado nao existe",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponseDTO.class)))
     @PostMapping
     public ResponseEntity<ClienteResponseDTO> criar(@Valid @RequestBody ClienteCreateDTO dto) {
         ClienteResponseDTO criado = clienteService.criar(dto);
@@ -62,11 +59,9 @@ public class ClienteController {
             description = """
                     Retorna uma pagina de clientes. Todos os filtros sao opcionais e podem ser combinados.
                     Por padrao apenas clientes ativos sao devolvidos.""")
-    @ApiResponses({
-            @ApiResponse(responseCode = "400", description = "Parametro de filtro em formato invalido",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class)))
-    })
+    @ApiResponse(responseCode = "400", description = "Parametro de filtro em formato invalido",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponseDTO.class)))
     @GetMapping
     public ResponseEntity<Page<ClienteResponseDTO>> listar(
             @Parameter(description = "Texto livre buscado no nome ou no e-mail do cliente", example = "mariana")
@@ -83,14 +78,12 @@ public class ClienteController {
     }
 
     @Operation(summary = "Busca um cliente pelo id")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Cliente encontrado",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ClienteResponseDTO.class))),
-            @ApiResponse(responseCode = "404", description = "Cliente nao encontrado",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class)))
-    })
+    @ApiResponse(responseCode = "200", description = "Cliente encontrado",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ClienteResponseDTO.class)))
+    @ApiResponse(responseCode = "404", description = "Cliente nao encontrado",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponseDTO.class)))
     @GetMapping("/{id}")
     public ResponseEntity<ClienteResponseDTO> buscarPorId(
             @Parameter(description = "Identificador do cliente", example = "1")
@@ -101,17 +94,15 @@ public class ClienteController {
     @Operation(
             summary = "Atualiza o cadastro de um cliente",
             description = "Substitui os dados cadastrais. A etapa do funil nao muda por aqui: use PATCH /status-funil.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Cadastro atualizado",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ClienteResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Campos obrigatorios ausentes ou invalidos",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "404", description = "Cliente ou vendedor nao encontrado",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class)))
-    })
+    @ApiResponse(responseCode = "200", description = "Cadastro atualizado",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ClienteResponseDTO.class)))
+    @ApiResponse(responseCode = "400", description = "Campos obrigatorios ausentes ou invalidos",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponseDTO.class)))
+    @ApiResponse(responseCode = "404", description = "Cliente ou vendedor nao encontrado",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponseDTO.class)))
     @PutMapping("/{id}")
     public ResponseEntity<ClienteResponseDTO> atualizar(
             @Parameter(description = "Identificador do cliente", example = "1")
@@ -123,17 +114,15 @@ public class ClienteController {
     @Operation(
             summary = "Move o cliente de etapa no funil",
             description = "Altera apenas o status do funil, sem tocar no restante do cadastro.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Etapa atualizada",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ClienteResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Status do funil ausente ou invalido",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "404", description = "Cliente nao encontrado",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class)))
-    })
+    @ApiResponse(responseCode = "200", description = "Etapa atualizada",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ClienteResponseDTO.class)))
+    @ApiResponse(responseCode = "400", description = "Status do funil ausente ou invalido",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponseDTO.class)))
+    @ApiResponse(responseCode = "404", description = "Cliente nao encontrado",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponseDTO.class)))
     @PatchMapping("/{id}/status-funil")
     public ResponseEntity<ClienteResponseDTO> atualizarStatusFunil(
             @Parameter(description = "Identificador do cliente", example = "1")
@@ -147,17 +136,15 @@ public class ClienteController {
             description = """
                     Transfere o cliente e a conversa dele para o novo vendedor, grava o motivo no
                     historico de atribuicoes e notifica a equipe pelo canal externo.""")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Cliente reatribuido",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ClienteResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Novo vendedor nao informado",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "404", description = "Cliente ou vendedor nao encontrado",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class)))
-    })
+    @ApiResponse(responseCode = "200", description = "Cliente reatribuido",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ClienteResponseDTO.class)))
+    @ApiResponse(responseCode = "400", description = "Novo vendedor nao informado",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponseDTO.class)))
+    @ApiResponse(responseCode = "404", description = "Cliente ou vendedor nao encontrado",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponseDTO.class)))
     @PatchMapping("/{id}/reatribuir")
     public ResponseEntity<ClienteResponseDTO> reatribuir(
             @Parameter(description = "Identificador do cliente", example = "1")
@@ -169,12 +156,10 @@ public class ClienteController {
     @Operation(
             summary = "Exclui um cliente",
             description = "Remove o cliente definitivamente, junto com a conversa e o historico ligados a ele.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Cliente excluido"),
-            @ApiResponse(responseCode = "404", description = "Cliente nao encontrado",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class)))
-    })
+    @ApiResponse(responseCode = "204", description = "Cliente excluido")
+    @ApiResponse(responseCode = "404", description = "Cliente nao encontrado",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponseDTO.class)))
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(
             @Parameter(description = "Identificador do cliente", example = "1")
