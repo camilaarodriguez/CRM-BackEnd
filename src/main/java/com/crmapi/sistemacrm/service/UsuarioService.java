@@ -2,6 +2,7 @@ package com.crmapi.sistemacrm.service;
 
 import com.crmapi.sistemacrm.dto.usuario.UsuarioCreateDTO;
 import com.crmapi.sistemacrm.dto.usuario.UsuarioResponseDTO;
+import com.crmapi.sistemacrm.dto.usuario.UsuarioSenhaDTO;
 import com.crmapi.sistemacrm.dto.usuario.UsuarioStatusDTO;
 import com.crmapi.sistemacrm.dto.usuario.UsuarioUpdateDTO;
 import com.crmapi.sistemacrm.model.enums.UsuarioRole;
@@ -19,6 +20,8 @@ public interface UsuarioService {
     UsuarioResponseDTO atualizar(Long id, UsuarioUpdateDTO dto);
 
     UsuarioResponseDTO atualizarStatus(Long id, UsuarioStatusDTO dto);
+
+    void alterarSenha(Long id, UsuarioSenhaDTO dto);
 
     void deletar(Long id);
 }

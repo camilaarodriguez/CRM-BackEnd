@@ -2,6 +2,7 @@ package com.crmapi.sistemacrm.controller;
 
 import com.crmapi.sistemacrm.dto.usuario.UsuarioCreateDTO;
 import com.crmapi.sistemacrm.dto.usuario.UsuarioResponseDTO;
+import com.crmapi.sistemacrm.dto.usuario.UsuarioSenhaDTO;
 import com.crmapi.sistemacrm.dto.usuario.UsuarioStatusDTO;
 import com.crmapi.sistemacrm.dto.usuario.UsuarioUpdateDTO;
 import com.crmapi.sistemacrm.exception.ErrorResponseDTO;
@@ -12,7 +13,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -35,17 +35,15 @@ public class UsuarioController {
     @Operation(
             summary = "Cadastra um usuario",
             description = "Cria um integrante da equipe. O e-mail e unico e o usuario ja nasce ativo.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Usuario cadastrado",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = UsuarioResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Campos obrigatorios ausentes ou invalidos",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "409", description = "Ja existe um usuario com o e-mail informado",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class)))
-    })
+    @ApiResponse(responseCode = "201", description = "Usuario cadastrado",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = UsuarioResponseDTO.class)))
+    @ApiResponse(responseCode = "400", description = "Campos obrigatorios ausentes ou invalidos",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponseDTO.class)))
+    @ApiResponse(responseCode = "409", description = "Ja existe um usuario com o e-mail informado",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponseDTO.class)))
     @PostMapping
     public ResponseEntity<UsuarioResponseDTO> criar(@Valid @RequestBody UsuarioCreateDTO dto) {
         UsuarioResponseDTO criado = usuarioService.criar(dto);
@@ -56,11 +54,9 @@ public class UsuarioController {
     @Operation(
             summary = "Lista usuarios com filtros e paginacao",
             description = "Retorna uma pagina de usuarios. Todos os filtros sao opcionais e podem ser combinados.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "400", description = "Parametro de filtro em formato invalido",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class)))
-    })
+    @ApiResponse(responseCode = "400", description = "Parametro de filtro em formato invalido",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponseDTO.class)))
     @GetMapping
     public ResponseEntity<Page<UsuarioResponseDTO>> listar(
             @Parameter(description = "Texto livre buscado no nome ou no e-mail", example = "ana")
@@ -75,14 +71,12 @@ public class UsuarioController {
     }
 
     @Operation(summary = "Busca um usuario pelo id")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Usuario encontrado",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = UsuarioResponseDTO.class))),
-            @ApiResponse(responseCode = "404", description = "Usuario nao encontrado",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class)))
-    })
+    @ApiResponse(responseCode = "200", description = "Usuario encontrado",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = UsuarioResponseDTO.class)))
+    @ApiResponse(responseCode = "404", description = "Usuario nao encontrado",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponseDTO.class)))
     @GetMapping("/{id}")
     public ResponseEntity<UsuarioResponseDTO> buscarPorId(
             @Parameter(description = "Identificador do usuario", example = "1")
@@ -93,20 +87,18 @@ public class UsuarioController {
     @Operation(
             summary = "Atualiza o cadastro de um usuario",
             description = "Altera nome, e-mail e perfil de acesso. A senha nao e alterada por este endpoint.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Cadastro atualizado",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = UsuarioResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Campos obrigatorios ausentes ou invalidos",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "404", description = "Usuario nao encontrado",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "409", description = "O e-mail informado ja pertence a outro usuario",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class)))
-    })
+    @ApiResponse(responseCode = "200", description = "Cadastro atualizado",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = UsuarioResponseDTO.class)))
+    @ApiResponse(responseCode = "400", description = "Campos obrigatorios ausentes ou invalidos",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponseDTO.class)))
+    @ApiResponse(responseCode = "404", description = "Usuario nao encontrado",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponseDTO.class)))
+    @ApiResponse(responseCode = "409", description = "O e-mail informado ja pertence a outro usuario",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponseDTO.class)))
     @PutMapping("/{id}")
     public ResponseEntity<UsuarioResponseDTO> atualizar(
             @Parameter(description = "Identificador do usuario", example = "1")
@@ -118,17 +110,15 @@ public class UsuarioController {
     @Operation(
             summary = "Ativa ou desativa um usuario",
             description = "Usuario inativo perde o acesso e deixa de receber novos clientes.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Situacao atualizada",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = UsuarioResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Campo ativo ausente",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class))),
-            @ApiResponse(responseCode = "404", description = "Usuario nao encontrado",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class)))
-    })
+    @ApiResponse(responseCode = "200", description = "Situacao atualizada",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = UsuarioResponseDTO.class)))
+    @ApiResponse(responseCode = "400", description = "Campo ativo ausente",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponseDTO.class)))
+    @ApiResponse(responseCode = "404", description = "Usuario nao encontrado",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponseDTO.class)))
     @PatchMapping("/{id}/status")
     public ResponseEntity<UsuarioResponseDTO> atualizarStatus(
             @Parameter(description = "Identificador do usuario", example = "1")
@@ -137,13 +127,35 @@ public class UsuarioController {
         return ResponseEntity.ok(usuarioService.atualizarStatus(id, dto));
     }
 
+    @Operation(
+            summary = "Altera a senha do usuario",
+            description = """
+                    Confere a senha atual contra o hash guardado e grava a nova ja codificada
+                    com BCrypt. A senha em texto puro nunca e persistida nem devolvida.""")
+    @ApiResponse(responseCode = "204", description = "Senha alterada")
+    @ApiResponse(responseCode = "400", description = "Campos obrigatorios ausentes ou nova senha curta demais",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponseDTO.class)))
+    @ApiResponse(responseCode = "404", description = "Usuario nao encontrado",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponseDTO.class)))
+    @ApiResponse(responseCode = "409", description = "A senha atual informada nao confere",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponseDTO.class)))
+    @PatchMapping("/{id}/senha")
+    public ResponseEntity<Void> alterarSenha(
+            @Parameter(description = "Identificador do usuario", example = "1")
+            @PathVariable Long id,
+            @Valid @RequestBody UsuarioSenhaDTO dto) {
+        usuarioService.alterarSenha(id, dto);
+        return ResponseEntity.noContent().build();
+    }
+
     @Operation(summary = "Exclui um usuario")
-    @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Usuario excluido"),
-            @ApiResponse(responseCode = "404", description = "Usuario nao encontrado",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponseDTO.class)))
-    })
+    @ApiResponse(responseCode = "204", description = "Usuario excluido")
+    @ApiResponse(responseCode = "404", description = "Usuario nao encontrado",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponseDTO.class)))
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(
             @Parameter(description = "Identificador do usuario", example = "1")
