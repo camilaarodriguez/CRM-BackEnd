@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 @Schema(name = "ClienteUpdate",
@@ -23,10 +24,16 @@ public record ClienteUpdateDTO(
         @Schema(description = "Telefone do contato, unico por cliente", example = "(11) 98877-6543", maxLength = 20)
         @NotBlank(message = "O telefone e obrigatorio")
         @Size(max = 20, message = "O telefone deve ter no maximo 20 caracteres")
+        @Pattern(
+                regexp = "^(?:[()+.\\s-]*\\d){10,15}[()+.\\s-]*$",
+                message = "O telefone deve ter de 10 a 15 digitos, aceitando apenas os simbolos ( ) + - . e espaco")
         String telefone,
 
         @Schema(description = "CPF ou CNPJ, unico quando informado", example = "412.559.870-11", maxLength = 18)
         @Size(max = 18, message = "O documento deve ter no maximo 18 caracteres")
+        @Pattern(
+                regexp = "^$|^(?:[./-]*\\d){11}[./-]*$|^(?:[./-]*\\d){14}[./-]*$",
+                message = "O documento deve ser um CPF com 11 digitos ou um CNPJ com 14 digitos")
         String documento,
 
         @Schema(description = "Empresa do contato", example = "Tech Dominio Ltda", maxLength = 150)
