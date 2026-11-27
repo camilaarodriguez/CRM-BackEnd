@@ -4,14 +4,18 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Contrato do codificador de senhas da aplicacao. Trocar este bean por um
- * encoder reversivel, ou por NoOpPasswordEncoder, derrubaria estes testes.
+ * Contrato do codificador de senhas e da leitura das origens do CORS. Trocar o
+ * encoder por um reversivel, ou por NoOpPasswordEncoder, derrubaria estes testes.
+ * A cadeia de filtros em si e coberta em SegurancaConfigWebTest.
  */
-@DisplayName("SegurancaConfig: codificador de senhas")
+@DisplayName("SegurancaConfig: codificador de senhas e CORS")
 class SegurancaConfigTest {
 
     private final PasswordEncoder encoder = new SegurancaConfig().passwordEncoder();
@@ -56,5 +60,19 @@ class SegurancaConfigTest {
         assertThat(primeiro).isNotEqualTo(segundo);
         assertThat(encoder.matches("123456", primeiro)).isTrue();
         assertThat(encoder.matches("123456", segundo)).isTrue();
+    }
+
+    @Test
+    @DisplayName("le as origens do CORS separadas por virgula, ignorando espacos e itens vazios")
+    void deveLerAsOrigensDoCors() {
+        // Act
+        CorsConfigurationSource fonte = new SegurancaConfig()
+                .corsConfigurationSource(" http://localhost:4200 , ,http://3.85.10.20 ");
+        CorsConfiguration config = fonte.getCorsConfiguration(new MockHttpServletRequest("GET", "/api/clientes"));
+
+        // Assert
+        assertThat(config).isNotNull();
+        assertThat(config.getAllowedOrigins()).containsExactly("http://localhost:4200", "http://3.85.10.20");
+        assertThat(config.getAllowedHeaders()).contains("Authorization", "Content-Type");
     }
 }
