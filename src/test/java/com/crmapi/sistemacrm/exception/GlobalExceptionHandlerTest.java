@@ -48,6 +48,28 @@ class GlobalExceptionHandlerTest {
         }
 
         @Test
+        @DisplayName("credenciais invalidas viram 401 e usuario inativo vira 403")
+        void deveTratarFalhaDeAutenticacaoComOStatusDaExcecao() {
+            // Act
+            ResponseEntity<ErrorResponseDTO> credenciais =
+                    handler.tratarFalhaDeAutenticacao(new CredenciaisInvalidasException(), request);
+            ResponseEntity<ErrorResponseDTO> inativo =
+                    handler.tratarFalhaDeAutenticacao(new UsuarioInativoException(), request);
+
+            // Assert
+            assertThat(credenciais.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+            assertThat(credenciais.getBody()).isNotNull();
+            assertThat(credenciais.getBody().status()).isEqualTo(401);
+            assertThat(credenciais.getBody().erro()).isEqualTo("Credenciais invalidas");
+            assertThat(credenciais.getBody().mensagem()).isEqualTo("E-mail ou senha invalidos");
+
+            assertThat(inativo.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            assertThat(inativo.getBody()).isNotNull();
+            assertThat(inativo.getBody().status()).isEqualTo(403);
+            assertThat(inativo.getBody().mensagem()).contains("inativo");
+        }
+
+        @Test
         @DisplayName("erro de validacao vira 400 listando os campos")
         void deveTratarErroDeValidacaoListandoOsCampos() {
             // Arrange
