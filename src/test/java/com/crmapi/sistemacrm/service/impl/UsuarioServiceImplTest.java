@@ -20,6 +20,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -111,16 +112,16 @@ class UsuarioServiceImplTest {
         }
 
         @Test
-        @DisplayName("converte falha do banco em erro de negocio")
-        void deveLancarErroDeNegocioQuandoFalhaAoSalvarNaCriacao() {
+        @DisplayName("deixa a falha do banco seguir para o tratador global (500), sem mascarar como 409")
+        void devePropagarAFalhaDoBancoQuandoFalhaAoSalvarNaCriacao() {
             // Arrange
             when(usuarioRepository.existsByEmail("ana@crm.com")).thenReturn(false);
             when(usuarioRepository.save(any(Usuario.class))).thenThrow(new RuntimeException("banco fora"));
 
             // Act + Assert
             assertThatThrownBy(() -> usuarioService.criar(criacao))
-                    .isInstanceOf(BusinessException.class)
-                    .hasMessage("Nao foi possivel criar o usuario");
+                    .isNotInstanceOf(BusinessException.class)
+                    .hasMessage("banco fora");
         }
     }
 
@@ -223,8 +224,8 @@ class UsuarioServiceImplTest {
         }
 
         @Test
-        @DisplayName("converte falha do banco em erro de negocio")
-        void deveLancarErroDeNegocioQuandoFalhaAoSalvarNaAtualizacao() {
+        @DisplayName("deixa a falha do banco seguir para o tratador global (500), sem mascarar como 409")
+        void devePropagarAFalhaDoBancoQuandoFalhaAoSalvarNaAtualizacao() {
             // Arrange
             Usuario existente = usuario(1L, "ana@crm.com");
             UsuarioUpdateDTO dto = new UsuarioUpdateDTO("Ana", "ana@crm.com", UsuarioRole.VENDEDOR);
@@ -234,8 +235,8 @@ class UsuarioServiceImplTest {
 
             // Act + Assert
             assertThatThrownBy(() -> usuarioService.atualizar(1L, dto))
-                    .isInstanceOf(BusinessException.class)
-                    .hasMessage("Nao foi possivel atualizar o usuario");
+                    .isNotInstanceOf(BusinessException.class)
+                    .hasMessage("banco fora");
         }
     }
 
@@ -260,8 +261,8 @@ class UsuarioServiceImplTest {
         }
 
         @Test
-        @DisplayName("converte falha do banco em erro de negocio ao mudar o status")
-        void deveLancarErroDeNegocioQuandoFalhaAoAtualizarStatus() {
+        @DisplayName("deixa a falha do banco seguir para o tratador global (500), sem mascarar como 409")
+        void devePropagarAFalhaDoBancoQuandoFalhaAoAtualizarStatus() {
             // Arrange
             Usuario existente = usuario(1L, "ana@crm.com");
             UsuarioStatusDTO dto = new UsuarioStatusDTO(false);
@@ -270,8 +271,8 @@ class UsuarioServiceImplTest {
 
             // Act + Assert
             assertThatThrownBy(() -> usuarioService.atualizarStatus(1L, dto))
-                    .isInstanceOf(BusinessException.class)
-                    .hasMessage("Nao foi possivel atualizar o status do usuario");
+                    .isNotInstanceOf(BusinessException.class)
+                    .hasMessage("banco fora");
         }
 
         @Test
@@ -284,22 +285,23 @@ class UsuarioServiceImplTest {
             // Act
             usuarioService.deletar(1L);
 
-            // Assert
+            // Assert: o flush confere as chaves estrangeiras ainda dentro do metodo.
             verify(usuarioRepository).delete(existente);
+            verify(usuarioRepository).flush();
         }
 
         @Test
-        @DisplayName("converte o vinculo com clientes em erro de negocio")
-        void deveLancarErroDeNegocioQuandoFalhaAoDeletar() {
+        @DisplayName("deixa a violacao de vinculo com clientes chegar ao tratador global, que responde 409")
+        void devePropagarViolacaoDeVinculoAoDeletar() {
             // Arrange
             Usuario existente = usuario(1L, "ana@crm.com");
             when(usuarioRepository.findById(1L)).thenReturn(Optional.of(existente));
-            doThrow(new RuntimeException("vinculo")).when(usuarioRepository).delete(existente);
+            doThrow(new DataIntegrityViolationException("vinculo")).when(usuarioRepository).flush();
 
             // Act + Assert: um vendedor com carteira nao pode sumir e deixar clientes orfaos.
             assertThatThrownBy(() -> usuarioService.deletar(1L))
-                    .isInstanceOf(BusinessException.class)
-                    .hasMessage("Nao foi possivel deletar o usuario");
+                    .isInstanceOf(DataIntegrityViolationException.class)
+                    .hasMessage("vinculo");
         }
     }
 

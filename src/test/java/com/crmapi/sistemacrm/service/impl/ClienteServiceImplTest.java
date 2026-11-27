@@ -18,6 +18,7 @@ import com.crmapi.sistemacrm.repository.AtribuicaoLogRepository;
 import com.crmapi.sistemacrm.repository.ClienteRepository;
 import com.crmapi.sistemacrm.repository.ConversaRepository;
 import com.crmapi.sistemacrm.repository.UsuarioRepository;
+import com.crmapi.sistemacrm.security.UsuarioLogado;
 import com.crmapi.sistemacrm.service.TelegramService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -76,6 +77,10 @@ class ClienteServiceImplTest {
 
     @Mock
     private TelegramService telegramService;
+
+    // Sem stub, o mock devolve Optional.empty(): o autor cai no vendedor envolvido.
+    @Mock
+    private UsuarioLogado usuarioLogado;
 
     @InjectMocks
     private ClienteServiceImpl clienteService;
@@ -198,8 +203,8 @@ class ClienteServiceImplTest {
         }
 
         @Test
-        @DisplayName("converte falha do banco em erro de negocio")
-        void deveLancarErroDeNegocioQuandoFalhaAoSalvarNaCriacao() {
+        @DisplayName("deixa a falha do banco seguir para o tratador global (500), sem mascarar como 409")
+        void devePropagarAFalhaDoBancoQuandoFalhaAoSalvarNaCriacao() {
             // Arrange
             ClienteCreateDTO dto = novoCliente(null, "  ");
             when(usuarioRepository.findById(3L)).thenReturn(Optional.of(vendedor));
@@ -207,8 +212,8 @@ class ClienteServiceImplTest {
 
             // Act + Assert
             assertThatThrownBy(() -> clienteService.criar(dto))
-                    .isInstanceOf(BusinessException.class)
-                    .hasMessage("Nao foi possivel criar o cliente");
+                    .isNotInstanceOf(BusinessException.class)
+                    .hasMessage("banco fora");
         }
     }
 
@@ -296,8 +301,8 @@ class ClienteServiceImplTest {
         }
 
         @Test
-        @DisplayName("converte falha do banco em erro de negocio")
-        void deveLancarErroDeNegocioQuandoFalhaAoSalvarNaAtualizacao() {
+        @DisplayName("deixa a falha do banco seguir para o tratador global (500), sem mascarar como 409")
+        void devePropagarAFalhaDoBancoQuandoFalhaAoSalvarNaAtualizacao() {
             // Arrange
             Cliente existente = cliente(10L, true);
             when(clienteRepository.findById(10L)).thenReturn(Optional.of(existente));
@@ -308,8 +313,8 @@ class ClienteServiceImplTest {
 
             // Act + Assert
             assertThatThrownBy(() -> clienteService.atualizar(10L, atualizacao))
-                    .isInstanceOf(BusinessException.class)
-                    .hasMessage("Nao foi possivel atualizar o cliente");
+                    .isNotInstanceOf(BusinessException.class)
+                    .hasMessage("banco fora");
         }
     }
 
@@ -334,8 +339,8 @@ class ClienteServiceImplTest {
         }
 
         @Test
-        @DisplayName("converte falha do banco em erro de negocio")
-        void deveLancarErroDeNegocioQuandoFalhaAoAtualizarStatusDoFunil() {
+        @DisplayName("deixa a falha do banco seguir para o tratador global (500), sem mascarar como 409")
+        void devePropagarAFalhaDoBancoQuandoFalhaAoAtualizarStatusDoFunil() {
             // Arrange
             Cliente existente = cliente(10L, true);
             ClienteStatusFunilDTO dto = new ClienteStatusFunilDTO(StatusFunil.PERDIDO);
@@ -344,8 +349,8 @@ class ClienteServiceImplTest {
 
             // Act + Assert
             assertThatThrownBy(() -> clienteService.atualizarStatusFunil(10L, dto))
-                    .isInstanceOf(BusinessException.class)
-                    .hasMessage("Nao foi possivel atualizar o status do funil");
+                    .isNotInstanceOf(BusinessException.class)
+                    .hasMessage("banco fora");
         }
     }
 
@@ -379,6 +384,29 @@ class ClienteServiceImplTest {
         }
 
         @Test
+        @DisplayName("registra no historico o gerente logado como autor da troca")
+        void deveRegistrarOGerenteLogadoComoAutorDaReatribuicao() {
+            // Arrange
+            Usuario gerente = Usuario.builder().id(7L).nome("Marcos").build();
+            Cliente existente = cliente(10L, true);
+            Conversa conversa = Conversa.builder().id(20L).cliente(existente).vendedor(vendedor).build();
+            when(clienteRepository.findById(10L)).thenReturn(Optional.of(existente));
+            when(usuarioRepository.findById(4L)).thenReturn(Optional.of(novoVendedor));
+            when(clienteRepository.save(existente)).thenReturn(existente);
+            when(conversaRepository.findByClienteId(10L)).thenReturn(Optional.of(conversa));
+            when(usuarioLogado.atual()).thenReturn(Optional.of(gerente));
+
+            // Act
+            clienteService.reatribuir(10L, reatribuicao);
+
+            // Assert: sem isto o historico diria que o proprio vendedor se atribuiu o cliente.
+            ArgumentCaptor<AtribuicaoLog> captor = ArgumentCaptor.forClass(AtribuicaoLog.class);
+            verify(atribuicaoLogRepository).save(captor.capture());
+            assertThat(captor.getValue().getFeitaPor()).isEqualTo(gerente);
+            assertThat(captor.getValue().getParaUsuario()).isEqualTo(novoVendedor);
+        }
+
+        @Test
         @DisplayName("abre uma conversa quando o cliente ainda nao tinha nenhuma")
         void deveCriarConversaAoReatribuirClienteSemConversaESemVendedor() {
             // Arrange
@@ -401,8 +429,8 @@ class ClienteServiceImplTest {
         }
 
         @Test
-        @DisplayName("converte falha do banco em erro de negocio")
-        void deveLancarErroDeNegocioQuandoFalhaAoReatribuir() {
+        @DisplayName("deixa a falha do banco seguir para o tratador global (500), sem mascarar como 409")
+        void devePropagarAFalhaDoBancoQuandoFalhaAoReatribuir() {
             // Arrange
             Cliente existente = cliente(10L, true);
             when(clienteRepository.findById(10L)).thenReturn(Optional.of(existente));
@@ -411,8 +439,8 @@ class ClienteServiceImplTest {
 
             // Act + Assert
             assertThatThrownBy(() -> clienteService.reatribuir(10L, reatribuicao))
-                    .isInstanceOf(BusinessException.class)
-                    .hasMessage("Nao foi possivel reatribuir o cliente");
+                    .isNotInstanceOf(BusinessException.class)
+                    .hasMessage("banco fora");
         }
     }
 

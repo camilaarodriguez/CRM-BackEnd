@@ -43,6 +43,19 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Login recusado: 401 para credenciais invalidas e 403 para usuario inativo.
+     * O status vem da propria excecao, que sabe o motivo da recusa.
+     */
+    @ExceptionHandler(AutenticacaoException.class)
+    public ResponseEntity<ErrorResponseDTO> tratarFalhaDeAutenticacao(AutenticacaoException ex,
+                                                                      HttpServletRequest request) {
+        log.warn("Autenticacao recusada em {}: {}", request.getRequestURI(), ex.getMessage());
+        ErrorResponseDTO erro = new ErrorResponseDTO(ex.getStatus().value(), ex.getTitulo(),
+                ex.getMessage(), request.getRequestURI());
+        return ResponseEntity.status(ex.getStatus()).body(erro);
+    }
+
+    /**
      * Rede de seguranca para violacoes de restricao do banco, como telefone ou
      * documento duplicado, que antes chegavam ao cliente como erro interno.
      */

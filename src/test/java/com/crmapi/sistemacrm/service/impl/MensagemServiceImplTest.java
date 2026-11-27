@@ -14,6 +14,7 @@ import com.crmapi.sistemacrm.model.enums.StatusEntrega;
 import com.crmapi.sistemacrm.model.enums.TipoMensagem;
 import com.crmapi.sistemacrm.repository.ConversaRepository;
 import com.crmapi.sistemacrm.repository.MensagemRepository;
+import com.crmapi.sistemacrm.security.UsuarioLogado;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -53,6 +54,10 @@ class MensagemServiceImplTest {
     @Spy
     private MensagemMapper mensagemMapper = new MensagemMapper();
 
+    // Sem stub, o mock devolve Optional.empty(): o autor cai no vendedor da conversa.
+    @Mock
+    private UsuarioLogado usuarioLogado;
+
     @InjectMocks
     private MensagemServiceImpl mensagemService;
 
@@ -88,6 +93,22 @@ class MensagemServiceImplTest {
         }
 
         @Test
+        @DisplayName("registra como autor quem esta logado, como o gerente respondendo pela equipe")
+        void deveRegistrarOUsuarioLogadoComoAutor() {
+            // Arrange
+            Usuario gerente = Usuario.builder().id(7L).nome("Marcos").build();
+            when(conversaRepository.findById(20L)).thenReturn(Optional.of(conversa(StatusConversa.ABERTA, 0)));
+            when(mensagemRepository.save(any(Mensagem.class))).thenAnswer(inv -> inv.getArgument(0));
+            when(usuarioLogado.atual()).thenReturn(Optional.of(gerente));
+
+            // Act
+            MensagemResponseDTO resposta = mensagemService.enviar(envio);
+
+            // Assert
+            assertThat(resposta.enviadaPorId()).isEqualTo(7L);
+        }
+
+        @Test
         @DisplayName("nao reabre uma conversa que ja foi fechada")
         void deveManterStatusQuandoConversaNaoEstaAberta() {
             // Arrange
@@ -115,16 +136,16 @@ class MensagemServiceImplTest {
         }
 
         @Test
-        @DisplayName("converte falha ao gravar em erro de negocio")
-        void deveLancarErroDeNegocioQuandoFalhaAoSalvarMensagem() {
+        @DisplayName("deixa a falha do banco seguir para o tratador global (500), sem mascarar como 409")
+        void devePropagarAFalhaDoBancoQuandoFalhaAoSalvarMensagem() {
             // Arrange
             when(conversaRepository.findById(20L)).thenReturn(Optional.of(conversa(StatusConversa.ABERTA, 0)));
             when(mensagemRepository.save(any(Mensagem.class))).thenThrow(new RuntimeException("banco fora"));
 
             // Act + Assert
             assertThatThrownBy(() -> mensagemService.enviar(envio))
-                    .isInstanceOf(BusinessException.class)
-                    .hasMessage("Nao foi possivel enviar a mensagem");
+                    .isNotInstanceOf(BusinessException.class)
+                    .hasMessage("banco fora");
         }
     }
 

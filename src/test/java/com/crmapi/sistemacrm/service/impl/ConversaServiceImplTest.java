@@ -88,15 +88,15 @@ class ConversaServiceImplTest {
         }
 
         @Test
-        @DisplayName("converte falha do banco em erro de negocio, sem vazar a causa")
-        void deveLancarErroDeNegocioQuandoFalhaAoListar() {
+        @DisplayName("deixa a falha do banco seguir para o tratador global (500), sem mascarar como 409")
+        void devePropagarAFalhaDoBancoQuandoFalhaAoListar() {
             // Arrange
             when(conversaRepository.findAll(pageable)).thenThrow(new RuntimeException("banco fora"));
 
             // Act + Assert
             assertThatThrownBy(() -> conversaService.listar(null, pageable))
-                    .isInstanceOf(BusinessException.class)
-                    .hasMessage("Nao foi possivel listar as conversas");
+                    .isNotInstanceOf(BusinessException.class)
+                    .hasMessage("banco fora");
         }
     }
 
@@ -131,15 +131,15 @@ class ConversaServiceImplTest {
         }
 
         @Test
-        @DisplayName("converte falha do banco em erro de negocio")
-        void deveLancarErroDeNegocioQuandoFalhaAoBuscar() {
+        @DisplayName("deixa a falha do banco seguir para o tratador global (500), sem mascarar como 409")
+        void devePropagarAFalhaDoBancoQuandoFalhaAoBuscar() {
             // Arrange
             when(conversaRepository.findById(1L)).thenThrow(new RuntimeException("banco fora"));
 
             // Act + Assert
             assertThatThrownBy(() -> conversaService.buscarPorId(1L))
-                    .isInstanceOf(BusinessException.class)
-                    .hasMessage("Nao foi possivel buscar a conversa");
+                    .isNotInstanceOf(BusinessException.class)
+                    .hasMessage("banco fora");
         }
     }
 }
