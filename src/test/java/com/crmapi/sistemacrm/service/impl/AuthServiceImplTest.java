@@ -1,12 +1,18 @@
 package com.crmapi.sistemacrm.service.impl;
 
 import com.crmapi.sistemacrm.dto.auth.LoginRequestDTO;
-import com.crmapi.sistemacrm.dto.usuario.UsuarioResponseDTO;
+import com.crmapi.sistemacrm.dto.auth.LoginResponseDTO;
+import com.crmapi.sistemacrm.dto.auth.RegistroRequestDTO;
 import com.crmapi.sistemacrm.exception.BusinessException;
+import com.crmapi.sistemacrm.exception.CredenciaisInvalidasException;
+import com.crmapi.sistemacrm.exception.UsuarioInativoException;
 import com.crmapi.sistemacrm.mapper.UsuarioMapper;
 import com.crmapi.sistemacrm.model.Usuario;
 import com.crmapi.sistemacrm.model.enums.UsuarioRole;
 import com.crmapi.sistemacrm.repository.UsuarioRepository;
+import com.crmapi.sistemacrm.security.JwtService;
+import java.time.Instant;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -16,8 +22,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -29,12 +33,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("AuthServiceImpl: entrada no sistema com e-mail e senha")
+@DisplayName("AuthServiceImpl: login e cadastro com emissao de JWT")
 class AuthServiceImplTest {
 
     private static final String EMAIL = "ana.moraes@crm.com";
     private static final String SENHA_DIGITADA = "123456";
     private static final String HASH_GUARDADO = "$2a$10$hashBCryptDeExemploParaOTeste";
+    private static final Instant EXPIRA_EM = Instant.parse("2026-11-26T20:00:00Z");
 
     @Mock
     private UsuarioRepository usuarioRepository;
@@ -42,13 +47,16 @@ class AuthServiceImplTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private JwtService jwtService;
+
     private AuthServiceImpl authService;
 
     @BeforeEach
     void setUp() {
         // O mapper nao tem dependencia nenhuma, entao entra inteiro: o que esta sob
         // teste e a regra de autenticacao, nao a conversao para DTO.
-        authService = new AuthServiceImpl(usuarioRepository, new UsuarioMapper(), passwordEncoder);
+        authService = new AuthServiceImpl(usuarioRepository, new UsuarioMapper(), passwordEncoder, jwtService);
     }
 
     private Usuario usuario(boolean ativo) {
@@ -62,26 +70,32 @@ class AuthServiceImplTest {
                 .build();
     }
 
+    private void tokenEmitido() {
+        when(jwtService.gerar(any(Usuario.class))).thenReturn(new JwtService.TokenGerado("jwt-de-teste", EXPIRA_EM));
+    }
+
     @Nested
     @DisplayName("Quando as credenciais conferem")
     class CredenciaisValidas {
 
         @Test
-        @DisplayName("devolve os dados do usuario autenticado")
-        void deveAutenticarEDevolverOsDadosDoUsuario() {
+        @DisplayName("devolve o token, a expiracao e os dados do usuario autenticado")
+        void deveAutenticarEDevolverOToken() {
             // Arrange
             when(usuarioRepository.findByEmail(EMAIL)).thenReturn(Optional.of(usuario(true)));
             when(passwordEncoder.matches(SENHA_DIGITADA, HASH_GUARDADO)).thenReturn(true);
+            tokenEmitido();
 
             // Act
-            UsuarioResponseDTO autenticado = authService.autenticar(new LoginRequestDTO(EMAIL, SENHA_DIGITADA));
+            LoginResponseDTO resposta = authService.autenticar(new LoginRequestDTO(EMAIL, SENHA_DIGITADA));
 
             // Assert
-            assertThat(autenticado.id()).isEqualTo(3L);
-            assertThat(autenticado.nome()).isEqualTo("Ana Beatriz Moraes");
-            assertThat(autenticado.email()).isEqualTo(EMAIL);
-            assertThat(autenticado.role()).isEqualTo(UsuarioRole.VENDEDOR);
-            assertThat(autenticado.ativo()).isTrue();
+            assertThat(resposta.token()).isEqualTo("jwt-de-teste");
+            assertThat(resposta.tipo()).isEqualTo("Bearer");
+            assertThat(resposta.expiraEm()).isEqualTo(EXPIRA_EM);
+            assertThat(resposta.usuario().id()).isEqualTo(3L);
+            assertThat(resposta.usuario().email()).isEqualTo(EMAIL);
+            assertThat(resposta.usuario().role()).isEqualTo(UsuarioRole.VENDEDOR);
         }
 
         @Test
@@ -90,6 +104,7 @@ class AuthServiceImplTest {
             // Arrange
             when(usuarioRepository.findByEmail(EMAIL)).thenReturn(Optional.of(usuario(true)));
             when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
+            tokenEmitido();
 
             // Act
             authService.autenticar(new LoginRequestDTO(EMAIL, SENHA_DIGITADA));
@@ -117,15 +132,16 @@ class AuthServiceImplTest {
 
             // Act + Assert
             assertThatThrownBy(() -> authService.autenticar(credenciais))
-                    .isInstanceOf(BusinessException.class)
+                    .isInstanceOf(CredenciaisInvalidasException.class)
                     .hasMessage("E-mail ou senha invalidos");
 
             // Sem usuario nao ha hash para comparar: o encoder nem chega a ser chamado.
             verify(passwordEncoder, never()).matches(any(), any());
+            verify(jwtService, never()).gerar(any());
         }
 
         @Test
-        @DisplayName("recusa o login quando a senha esta errada")
+        @DisplayName("recusa o login quando a senha esta errada e nao emite token")
         void deveRecusarSenhaErrada() {
             // Arrange
             when(usuarioRepository.findByEmail(EMAIL)).thenReturn(Optional.of(usuario(true)));
@@ -134,8 +150,9 @@ class AuthServiceImplTest {
 
             // Act + Assert
             assertThatThrownBy(() -> authService.autenticar(credenciais))
-                    .isInstanceOf(BusinessException.class)
+                    .isInstanceOf(CredenciaisInvalidasException.class)
                     .hasMessage("E-mail ou senha invalidos");
+            verify(jwtService, never()).gerar(any());
         }
 
         @Test
@@ -164,7 +181,7 @@ class AuthServiceImplTest {
     class UsuarioInativo {
 
         @Test
-        @DisplayName("barra a entrada mesmo com a senha correta")
+        @DisplayName("barra a entrada mesmo com a senha correta e nao emite token")
         void deveBarrarUsuarioInativo() {
             // Arrange
             when(usuarioRepository.findByEmail(EMAIL)).thenReturn(Optional.of(usuario(false)));
@@ -173,8 +190,9 @@ class AuthServiceImplTest {
 
             // Act + Assert
             assertThatThrownBy(() -> authService.autenticar(credenciais))
-                    .isInstanceOf(BusinessException.class)
+                    .isInstanceOf(UsuarioInativoException.class)
                     .hasMessage("Este usuario esta inativo. Procure um administrador.");
+            verify(jwtService, never()).gerar(any());
         }
 
         @Test
@@ -193,6 +211,56 @@ class AuthServiceImplTest {
             // mensagem especifica orienta sem vazar nada.
             assertThat(erro).hasMessageContaining("inativo");
             assertThat(erro.getMessage()).isNotEqualTo("E-mail ou senha invalidos");
+        }
+    }
+
+    @Nested
+    @DisplayName("Cadastro publico")
+    class Registro {
+
+        private final RegistroRequestDTO cadastro = new RegistroRequestDTO("Joao Pedro", "joao@crm.com", "segredo1");
+
+        @Test
+        @DisplayName("cria a conta como VENDEDOR ativo, com a senha em hash, e ja devolve o token")
+        void deveCadastrarComoVendedorEDevolverToken() {
+            // Arrange
+            when(usuarioRepository.existsByEmail("joao@crm.com")).thenReturn(false);
+            when(passwordEncoder.encode("segredo1")).thenReturn("$2a$10$hashDoJoao");
+            when(usuarioRepository.save(any(Usuario.class))).thenAnswer(inv -> {
+                Usuario salvo = inv.getArgument(0);
+                salvo.setId(9L);
+                return salvo;
+            });
+            tokenEmitido();
+
+            // Act
+            LoginResponseDTO resposta = authService.registrar(cadastro);
+
+            // Assert
+            ArgumentCaptor<Usuario> captor = ArgumentCaptor.forClass(Usuario.class);
+            verify(usuarioRepository).save(captor.capture());
+            Usuario gravado = captor.getValue();
+            assertThat(gravado.getRole()).isEqualTo(UsuarioRole.VENDEDOR);
+            assertThat(gravado.getAtivo()).isTrue();
+            assertThat(gravado.getSenha()).isEqualTo("$2a$10$hashDoJoao").isNotEqualTo("segredo1");
+
+            assertThat(resposta.token()).isEqualTo("jwt-de-teste");
+            assertThat(resposta.usuario().id()).isEqualTo(9L);
+            assertThat(resposta.usuario().role()).isEqualTo(UsuarioRole.VENDEDOR);
+        }
+
+        @Test
+        @DisplayName("recusa e-mail que ja esta cadastrado, sem gravar nada")
+        void deveRecusarEmailDuplicado() {
+            // Arrange
+            when(usuarioRepository.existsByEmail("joao@crm.com")).thenReturn(true);
+
+            // Act + Assert
+            assertThatThrownBy(() -> authService.registrar(cadastro))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("email");
+            verify(usuarioRepository, never()).save(any());
+            verify(jwtService, never()).gerar(any());
         }
     }
 }
