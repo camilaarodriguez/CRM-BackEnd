@@ -2,7 +2,6 @@ package com.crmapi.sistemacrm.service.impl;
 
 import com.crmapi.sistemacrm.dto.mensagem.MensagemCreateDTO;
 import com.crmapi.sistemacrm.dto.mensagem.MensagemResponseDTO;
-import com.crmapi.sistemacrm.exception.BusinessException;
 import com.crmapi.sistemacrm.exception.ResourceNotFoundException;
 import com.crmapi.sistemacrm.mapper.MensagemMapper;
 import com.crmapi.sistemacrm.model.Conversa;
@@ -12,6 +11,7 @@ import com.crmapi.sistemacrm.model.enums.StatusConversa;
 import com.crmapi.sistemacrm.model.enums.StatusEntrega;
 import com.crmapi.sistemacrm.repository.ConversaRepository;
 import com.crmapi.sistemacrm.repository.MensagemRepository;
+import com.crmapi.sistemacrm.security.UsuarioLogado;
 import com.crmapi.sistemacrm.service.MensagemService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,38 +30,36 @@ public class MensagemServiceImpl implements MensagemService {
     private final MensagemRepository mensagemRepository;
     private final ConversaRepository conversaRepository;
     private final MensagemMapper mensagemMapper;
+    private final UsuarioLogado usuarioLogado;
 
     @Override
     public MensagemResponseDTO enviar(MensagemCreateDTO dto) {
         Conversa conversa = conversaRepository.findById(dto.conversaId())
                 .orElseThrow(() -> new ResourceNotFoundException("Conversa nao encontrada com o id: " + dto.conversaId()));
 
-        try {
-            Mensagem mensagem = Mensagem.builder()
-                    .conversa(conversa)
-                    .direcao(DirecaoMensagem.SAIDA)
-                    .tipo(dto.tipo())
-                    .conteudo(dto.conteudo())
-                    .statusEntrega(StatusEntrega.ENVIADA)
-                    .enviadaPor(conversa.getVendedor())
-                    .build();
+        Mensagem mensagem = Mensagem.builder()
+                .conversa(conversa)
+                .direcao(DirecaoMensagem.SAIDA)
+                .tipo(dto.tipo())
+                .conteudo(dto.conteudo())
+                .statusEntrega(StatusEntrega.ENVIADA)
+                // Autor real da mensagem: quem esta logado (pode ser o gerente
+                // respondendo pela equipe), com o vendedor da conversa como reserva.
+                .enviadaPor(usuarioLogado.atual().orElse(conversa.getVendedor()))
+                .build();
 
-            Mensagem salva = mensagemRepository.save(mensagem);
+        Mensagem salva = mensagemRepository.save(mensagem);
 
-            conversa.setUltimaMensagemEm(LocalDateTime.now());
-            // A primeira resposta da equipe tira a conversa da fila e a poe em atendimento.
-            if (conversa.getStatus() == StatusConversa.ABERTA) {
-                conversa.setStatus(StatusConversa.EM_ATENDIMENTO);
-            }
-            conversaRepository.save(conversa);
-
-            log.info("Mensagem enviada: id={}, conversaId={}, tipo={}", salva.getId(), conversa.getId(), dto.tipo());
-
-            return mensagemMapper.paraResponseDTO(salva);
-        } catch (Exception e) {
-            log.error("Erro ao enviar mensagem na conversa id={}: {}", dto.conversaId(), e.getMessage());
-            throw new BusinessException("Nao foi possivel enviar a mensagem");
+        conversa.setUltimaMensagemEm(LocalDateTime.now());
+        // A primeira resposta da equipe tira a conversa da fila e a poe em atendimento.
+        if (conversa.getStatus() == StatusConversa.ABERTA) {
+            conversa.setStatus(StatusConversa.EM_ATENDIMENTO);
         }
+        conversaRepository.save(conversa);
+
+        log.info("Mensagem enviada: id={}, conversaId={}, tipo={}", salva.getId(), conversa.getId(), dto.tipo());
+
+        return mensagemMapper.paraResponseDTO(salva);
     }
 
     @Override

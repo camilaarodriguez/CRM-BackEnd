@@ -37,15 +37,12 @@ public class UsuarioServiceImpl implements UsuarioService {
             log.warn("Tentativa de criar usuario com email ja cadastrado: {}", dto.email());
             throw new BusinessException("Ja existe um usuario cadastrado com o email informado");
         }
-        try {
-            Usuario usuario = usuarioMapper.paraEntidade(dto, passwordEncoder.encode(dto.senha()));
-            Usuario salvo = usuarioRepository.save(usuario);
-            log.info("Usuario criado: id={}, email={}, role={}", salvo.getId(), salvo.getEmail(), salvo.getRole());
-            return usuarioMapper.paraResponseDTO(salvo);
-        } catch (Exception e) {
-            log.error("Erro ao criar usuario com email {}: {}", dto.email(), e.getMessage());
-            throw new BusinessException("Nao foi possivel criar o usuario");
-        }
+        // Sem try/catch: falha de banco vai para o GlobalExceptionHandler (409 para
+        // restricao violada, 500 para o resto), sem ser mascarada como regra de negocio.
+        Usuario usuario = usuarioMapper.paraEntidade(dto, passwordEncoder.encode(dto.senha()));
+        Usuario salvo = usuarioRepository.save(usuario);
+        log.info("Usuario criado: id={}, email={}, role={}", salvo.getId(), salvo.getEmail(), salvo.getRole());
+        return usuarioMapper.paraResponseDTO(salvo);
     }
 
     @Override
@@ -72,32 +69,22 @@ public class UsuarioServiceImpl implements UsuarioService {
             }
         });
 
-        try {
-            usuario.setNome(dto.nome());
-            usuario.setEmail(dto.email());
-            usuario.setRole(dto.role());
+        usuario.setNome(dto.nome());
+        usuario.setEmail(dto.email());
+        usuario.setRole(dto.role());
 
-            Usuario atualizado = usuarioRepository.save(usuario);
-            log.info("Usuario atualizado: id={}, email={}", id, dto.email());
-            return usuarioMapper.paraResponseDTO(atualizado);
-        } catch (Exception e) {
-            log.error("Erro ao atualizar usuario id={}: {}", id, e.getMessage());
-            throw new BusinessException("Nao foi possivel atualizar o usuario");
-        }
+        Usuario atualizado = usuarioRepository.save(usuario);
+        log.info("Usuario atualizado: id={}, email={}", id, dto.email());
+        return usuarioMapper.paraResponseDTO(atualizado);
     }
 
     @Override
     public UsuarioResponseDTO atualizarStatus(Long id, UsuarioStatusDTO dto) {
         Usuario usuario = buscarEntidadePorId(id);
-        try {
-            usuario.setAtivo(dto.ativo());
-            Usuario atualizado = usuarioRepository.save(usuario);
-            log.info("Status do usuario atualizado: id={}, ativo={}", id, dto.ativo());
-            return usuarioMapper.paraResponseDTO(atualizado);
-        } catch (Exception e) {
-            log.error("Erro ao atualizar status do usuario id={}: {}", id, e.getMessage());
-            throw new BusinessException("Nao foi possivel atualizar o status do usuario");
-        }
+        usuario.setAtivo(dto.ativo());
+        Usuario atualizado = usuarioRepository.save(usuario);
+        log.info("Status do usuario atualizado: id={}, ativo={}", id, dto.ativo());
+        return usuarioMapper.paraResponseDTO(atualizado);
     }
 
     @Override
@@ -119,13 +106,12 @@ public class UsuarioServiceImpl implements UsuarioService {
     @Override
     public void deletar(Long id) {
         Usuario usuario = buscarEntidadePorId(id);
-        try {
-            usuarioRepository.delete(usuario);
-            log.info("Usuario deletado: id={}", id);
-        } catch (Exception e) {
-            log.error("Erro ao deletar usuario id={}: {}", id, e.getMessage());
-            throw new BusinessException("Nao foi possivel deletar o usuario");
-        }
+        // Usuario com clientes ou conversas vinculados viola a chave estrangeira: o
+        // flush antecipa essa checagem para ca, e o GlobalExceptionHandler traduz a
+        // DataIntegrityViolationException em 409.
+        usuarioRepository.delete(usuario);
+        usuarioRepository.flush();
+        log.info("Usuario deletado: id={}", id);
     }
 
     private Usuario buscarEntidadePorId(Long id) {
