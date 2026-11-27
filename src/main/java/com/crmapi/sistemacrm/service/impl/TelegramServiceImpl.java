@@ -25,6 +25,11 @@ public class TelegramServiceImpl implements TelegramService {
 
     @Override
     public void notificar(String mensagem) {
+        // O Telegram e opcional: sem token configurado, a notificacao e ignorada.
+        if (token == null || token.isBlank()) {
+            log.debug("Telegram nao configurado, notificacao ignorada: {}", mensagem);
+            return;
+        }
         try {
             telegramClient.enviarMensagem(token, new TelegramMensagemRequest(chatId, mensagem));
             log.info("Notificacao enviada ao Telegram: {}", mensagem);

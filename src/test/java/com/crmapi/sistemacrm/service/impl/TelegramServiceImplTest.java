@@ -13,6 +13,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 /**
@@ -53,5 +54,20 @@ class TelegramServiceImplTest {
 
         // Act + Assert: cadastrar um cliente nao pode falhar porque o aviso caiu.
         assertThatCode(() -> telegramService.notificar("Novo cliente")).doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("nao chama o Telegram quando o token nao foi configurado")
+    void naoDeveChamarOTelegramSemToken() {
+        // Arrange
+        TelegramServiceImpl semToken = new TelegramServiceImpl(telegramClient, "", "chat-teste");
+        TelegramServiceImpl tokenNulo = new TelegramServiceImpl(telegramClient, null, "chat-teste");
+
+        // Act
+        semToken.notificar("Novo cliente");
+        tokenNulo.notificar("Novo cliente");
+
+        // Assert
+        verify(telegramClient, never()).enviarMensagem(anyString(), any(TelegramMensagemRequest.class));
     }
 }
