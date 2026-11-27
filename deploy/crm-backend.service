@@ -1,0 +1,31 @@
+[Unit]
+Description=CRM - API Spring Boot
+Documentation=https://github.com/camilaarodriguez/CRM-BackEnd
+After=network-online.target postgresql.service
+Wants=network-online.target
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=crm
+Group=crm
+WorkingDirectory=/opt/crm
+# Credenciais e configuracao: gerado pelo deploy/setup.sh, legivel apenas pelo root.
+EnvironmentFile=/etc/crm/crm.env
+ExecStart=/usr/bin/java -Xms256m -Xmx512m -jar /opt/crm/sistema-crm.jar
+# 143 = encerrado pelo SIGTERM do "systemctl stop": desligamento normal, nao falha.
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=crm-backend
+
+# Endurecimento basico: o processo nao ganha privilegios nem escreve no sistema.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

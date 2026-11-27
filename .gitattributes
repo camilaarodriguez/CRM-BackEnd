@@ -1,0 +1,4 @@
+# Scripts e arquivos de deploy rodam no Linux da EC2: precisam de LF,
+# mesmo quando alguem commita a partir do Windows.
+*.sh      text eol=lf
+deploy/** text eol=lf

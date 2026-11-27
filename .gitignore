@@ -6,3 +6,8 @@ target/
 .DS_Store
 
 sonar-local.txt
+
+# Variaveis de ambiente com valores reais: nunca vao para o Git.
+.env
+*.env
+!.env.example
