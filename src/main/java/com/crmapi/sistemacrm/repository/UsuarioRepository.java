@@ -1,6 +1,7 @@
 package com.crmapi.sistemacrm.repository;
 
 import com.crmapi.sistemacrm.model.Usuario;
+import com.crmapi.sistemacrm.model.enums.UsuarioRole;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
@@ -11,4 +12,6 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpec
     Optional<Usuario> findByEmail(String email);
 
     boolean existsByEmail(String email);
+
+    boolean existsByRole(UsuarioRole role);
 }
